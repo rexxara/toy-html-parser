@@ -1,12 +1,12 @@
 const EOF = void 0
 
 function HTMLLexicalParser (syntaxer) {
-  let state = data
+  let state = data//initial state
   let token = null
   let attribute = null
   let characterReference = ''
 
-  this.receiveInput = function (char) {
+  this.receiveInput = function (char) {//rcv char one by one
     if (state == null) {
       throw new Error('there is an error')
     } else {
@@ -18,33 +18,23 @@ function HTMLLexicalParser (syntaxer) {
     state = data
   }
 
-  function data (c) {
+  function data (c) {//rcv most of data  such as <p> CURRENT rexxra<p>
     switch (c) {
       case '&':
+        //deal with &nbsp; etc...
         return characterReferenceInData
-
       case '<':
         return tagOpen
 
-      // perhaps will not encounter in javascript?
-      // case '\0':
-      //   error()
-      //   emitToken(c)
-      //   return data
-
-      //  can be handle by default case
-      // case EOF:
-      //   emitToken(EOF)
-      //   return data
-
       default:
+        //do nothing, push to syntaxer
         emitToken(c)
         return data
     }
   }
 
   // only handle right character reference
-  function characterReferenceInData (c) {
+  function characterReferenceInData (c) { 
     if (c === ';') {
       characterReference += c
       emitToken(characterReference)
@@ -56,9 +46,9 @@ function HTMLLexicalParser (syntaxer) {
     }
   }
 
-  function tagOpen (c) {
+  function tagOpen (c) {//<>
     if (c === '/') {
-      return endTagOpen
+      return endTagOpen//</>
     }
     if (/[a-zA-Z]/.test(c)) {
       token = new StartTagToken()
@@ -86,22 +76,22 @@ function HTMLLexicalParser (syntaxer) {
     }
     if (/[a-zA-Z]/.test(c)) {
       token.name += c.toLowerCase()
-      return tagName
+      return tagName//rcv tagName
     }
   }
 
   function beforeAttributeName (c) {
     if (/[\t \f\n]/.test(c)) {
-      return beforeAttributeName
+      return beforeAttributeName//filter space  such as:"<p SPACE classname="test">"
     }
     if (c === '/') {
-      return selfClosingTag
+      return selfClosingTag// <img/>
     }
-    if (c === '>') {
+    if (c === '>') {//<p classname="sth"> start tag end
       emitToken(token)
-      return data
+      return data//return init state
     }
-    if (/["'<]/.test(c)) {
+    if (/["'<]/.test(c)) {// strange error ctrl
       return error(c)
     }
 
@@ -112,28 +102,28 @@ function HTMLLexicalParser (syntaxer) {
   }
 
   function attributeName (c) {
-    if (c === '/') {
+    if (c === '/') {//direct clone tag ? <p classname/ CLOSED ="test">
       token[attribute.name] = attribute.value
       return selfClosingTag
     }
-    if (c === '=') {
+    if (c === '=') {// <p classname=  PROCESS SPACE  "test">
       return beforeAttributeValue
     }
     if (/[\t \f\n]/.test(c)) {
       return beforeAttributeName
     }
-    attribute.name += c.toLowerCase()
+    attribute.name += c.toLowerCase()//continue rcv char
     return attributeName
   }
 
-  function beforeAttributeValue (c) {
+  function beforeAttributeValue (c) {// <p classname=  PROCESS SPACE  "test">
     if (c === '"') {
       return attributeValueDoubleQuoted
     }
     if (c === "'") {
       return attributeValueSingleQuoted
     }
-    if (/\t \f\n/.test(c)) {
+    if (/\t \f\n/.test(c)) {//some attribute dont hav "" or ''
       return beforeAttributeValue
     }
     attribute.value += c
@@ -144,7 +134,7 @@ function HTMLLexicalParser (syntaxer) {
     if (c === '"') {
       token[attribute.name] = attribute.value
       return beforeAttributeName
-    }
+    }// one attribute end <img classname="test" CURRENT src="">
     attribute.value += c
     return attributeValueDoubleQuoted
   }
@@ -159,7 +149,7 @@ function HTMLLexicalParser (syntaxer) {
   }
 
   function attributeValueUnquoted (c) {
-    if (/[\t \f\n]/.test(c)) {
+    if (/[\t \f\n]/.test(c)) {//<img classname=test CURRENT src="">
       token[attribute.name] = attribute.value
       return beforeAttributeName
     }
@@ -167,8 +157,8 @@ function HTMLLexicalParser (syntaxer) {
     return attributeValueUnquoted
   }
 
-  function selfClosingTag (c) {
-    if (c === '>') {
+  function selfClosingTag (c) {// <img/ CURRENT >
+    if (c === '>') {//otherwise do nothing
       emitToken(token)
       endToken = new EndTagToken()
       endToken.name = token.name
@@ -177,13 +167,13 @@ function HTMLLexicalParser (syntaxer) {
     }
   }
 
-  function endTagOpen (c) {
+  function endTagOpen (c) {//</ CURRENT h1>
     if (/[a-zA-Z]/.test(c)) {
       token = new EndTagToken()
       token.name = c.toLowerCase()
       return tagName
     }
-    if (c === '>') {
+    if (c === '>') {// ERROR </>
       return error(c)
     }
   }

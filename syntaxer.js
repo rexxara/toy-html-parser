@@ -13,7 +13,7 @@ class Element extends Node {
     for (const key in token) {
       this[key] = token[key]
     }
-    this.childNodes = []
+    this.childNodes = [] 
   }
   [Symbol.toStringTag] () {
     return `Element<${this.name}>`
@@ -30,32 +30,34 @@ function HTMLSyntaticalParser () {
   const stack = [new HTMLDocument]
 
   this.receiveInput = function (token) {
-    if (typeof token === 'string') {
-      if (getTop(stack) instanceof Text) {
-        getTop(stack).value += token
+    if (typeof token === 'string') {//merge text <p>test  </p> ===> tes + t
+      if (seeTop(stack) instanceof Text) {
+        seeTop(stack).value += token
       } else {
-        let t = new Text(token)
-        getTop(stack).childNodes.push(t)
+        let t = new Text(token)//html change line  textNode first char 
+        // <head data-rex="1">CURRENT
+        //     <title> CURRENT cool </title>
+        seeTop(stack).childNodes.push(t)
         stack.push(t)
       }
-    } else if (getTop(stack) instanceof Text) {
+    } else if (seeTop(stack) instanceof Text) {//node process end,return pre node,因为上一层已经在chileNode里有这个节点的引用
       stack.pop()
     }
 
     if (token instanceof StartTagToken) {
-      let e = new Element(token)
-      getTop(stack).childNodes.push(e)
+      let e = new Element(token)//create childNode and push new node in to stack top
+      seeTop(stack).childNodes.push(e)
       return stack.push(e)
     }
-    if (token instanceof EndTagToken) {
+    if (token instanceof EndTagToken) {//node process end,return pre node,因为上一层已经在chileNode里有这个节点的引用
       return stack.pop()
     }
   }
 
-  this.getOutput = () => stack[0]
+  this.getOutput = () => stack[0]//return dom tree
 }
 
-function getTop (stack) {
+function seeTop (stack) {
   return stack[stack.length - 1]
 }
 
